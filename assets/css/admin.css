@@ -1,0 +1,679 @@
+/**
+ * IntakeFlow Admin Styles
+ */
+
+/* Builder Layout */
+.intakeflow-builder-container {
+    display: flex;
+    gap: 20px;
+    margin-top: 20px;
+    height: calc(100vh - 200px);
+    min-height: 600px;
+}
+
+.intakeflow-flows-sidebar {
+    width: 250px;
+    background: #fff;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    padding: 15px;
+    overflow-y: auto;
+}
+
+.intakeflow-builder-main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    background: #fff;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+}
+
+.intakeflow-builder-toolbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px;
+    border-bottom: 1px solid #ddd;
+}
+
+.intakeflow-node-palette {
+    padding: 15px;
+    border-bottom: 1px solid #ddd;
+}
+
+.intakeflow-node-palette h3 {
+    margin: 0 0 10px 0;
+    font-size: 14px;
+}
+
+.intakeflow-node-buttons {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+/* ReactFlow Canvas Styles */
+.intakeflow-canvas {
+    flex: 1;
+    background: #fafafa;
+    position: relative;
+    min-height: 400px !important;
+    overflow: hidden;
+}
+
+/* Node delete button - show on hover */
+.intakeflow-node-container:hover .intakeflow-node-delete {
+    opacity: 1 !important;
+}
+
+.intakeflow-node-delete:hover {
+    background: #b71c1c !important;
+    transform: scale(1.1);
+}
+
+.intakeflow-custom-node {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+}
+
+.intakeflow-custom-node.selected {
+    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+}
+
+.react-flow__controls {
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+}
+
+.react-flow__minimap {
+    border: 1px solid #ddd;
+    border-radius: 4px;
+}
+
+.react-flow__edge-path {
+    stroke-width: 2;
+}
+
+.react-flow__edge.selected .react-flow__edge-path {
+    stroke: #2271b1;
+    stroke-width: 3;
+}
+
+.react-flow__handle {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    border: 2px solid #fff;
+}
+
+/* Option Items */
+.intakeflow-option-item,
+.intakeflow-condition-item {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    margin-bottom: 10px;
+    padding: 10px;
+    background: #f9f9f9;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+}
+
+.intakeflow-option-label {
+    flex: 1;
+}
+
+.intakeflow-condition-operator {
+    flex: 0 0 140px;
+}
+
+.intakeflow-condition-value {
+    flex: 1;
+    min-width: 150px;
+}
+
+.intakeflow-remove-option,
+.intakeflow-remove-condition {
+    padding: 4px 8px !important;
+    min-width: auto !important;
+}
+
+/* Buttons */
+.button .dashicons {
+    font-size: 16px;
+    width: 16px;
+    height: 16px;
+    vertical-align: middle;
+    margin-right: 4px;
+}
+
+.intakeflow-add-option,
+.intakeflow-add-condition {
+    margin-top: 10px;
+}
+
+/* Question Options Container */
+.intakeflow-question-options,
+.intakeflow-branch-conditions {
+    margin-bottom: 15px;
+}
+
+/* Action Fields */
+.intakeflow-action-fields {
+    margin-top: 20px;
+}
+
+/* Dashboard */
+.intakeflow-dashboard-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 20px;
+    margin: 20px 0;
+}
+
+.intakeflow-stat-box {
+    background: #fff;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    padding: 20px;
+    text-align: center;
+}
+
+.intakeflow-stat-box h3 {
+    margin: 0 0 10px 0;
+    font-size: 14px;
+    color: #666;
+    text-transform: uppercase;
+    font-weight: 600;
+}
+
+.intakeflow-stat-box .stat-number {
+    font-size: 36px;
+    font-weight: bold;
+    color: #2271b1;
+    margin: 10px 0;
+}
+
+.intakeflow-stat-box .stat-label {
+    font-size: 12px;
+    color: #999;
+}
+
+/* Analytics Charts */
+.intakeflow-chart-container {
+    background: #fff;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    padding: 20px;
+    margin: 20px 0;
+}
+
+.intakeflow-chart-container h3 {
+    margin: 0 0 20px 0;
+    font-size: 18px;
+}
+
+/* Leads Table */
+.intakeflow-leads-table {
+    width: 100%;
+    background: #fff;
+    border: 1px solid #ddd;
+    border-collapse: collapse;
+    margin: 20px 0;
+}
+
+.intakeflow-leads-table th,
+.intakeflow-leads-table td {
+    padding: 12px;
+    text-align: left;
+    border-bottom: 1px solid #ddd;
+}
+
+.intakeflow-leads-table th {
+    background: #f9f9f9;
+    font-weight: 600;
+    font-size: 13px;
+    text-transform: uppercase;
+}
+
+.intakeflow-leads-table tr:hover {
+    background: #f9f9f9;
+}
+
+.intakeflow-lead-status {
+    display: inline-block;
+    padding: 4px 10px;
+    border-radius: 12px;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.intakeflow-lead-status.new {
+    background: #e3f2fd;
+    color: #1976d2;
+}
+
+.intakeflow-lead-status.contacted {
+    background: #fff3e0;
+    color: #f57c00;
+}
+
+.intakeflow-lead-status.converted {
+    background: #e8f5e9;
+    color: #388e3c;
+}
+
+.intakeflow-lead-status.lost {
+    background: #ffebee;
+    color: #d32f2f;
+}
+
+/* Settings */
+.intakeflow-settings-section {
+    background: #fff;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    padding: 20px;
+    margin: 20px 0;
+}
+
+.intakeflow-settings-section h2 {
+    margin: 0 0 20px 0;
+    font-size: 18px;
+    border-bottom: 1px solid #ddd;
+    padding-bottom: 10px;
+}
+
+.intakeflow-setting-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 15px 0;
+    border-bottom: 1px solid #f0f0f0;
+}
+
+.intakeflow-setting-row:last-child {
+    border-bottom: none;
+}
+
+.intakeflow-setting-label {
+    flex: 1;
+}
+
+.intakeflow-setting-label h4 {
+    margin: 0 0 5px 0;
+    font-size: 14px;
+}
+
+.intakeflow-setting-label p {
+    margin: 0;
+    font-size: 13px;
+    color: #666;
+}
+
+.intakeflow-setting-control {
+    flex: 0 0 300px;
+}
+
+.intakeflow-setting-control input[type="text"],
+.intakeflow-setting-control input[type="number"],
+.intakeflow-setting-control select,
+.intakeflow-setting-control textarea {
+    width: 100%;
+    padding: 8px 12px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+}
+
+.intakeflow-color-picker {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+.intakeflow-color-preview {
+    width: 40px;
+    height: 40px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+}
+
+/* Responsive */
+@media (max-width: 1200px) {
+    .intakeflow-builder-container {
+        flex-direction: column;
+        height: auto;
+    }
+    
+    .intakeflow-flows-sidebar {
+        width: 100%;
+        max-height: 300px;
+        border-right: none;
+        border-bottom: 1px solid #ddd;
+    }
+    
+    .intakeflow-node-editor {
+        position: fixed;
+        right: 20px;
+        top: 100px;
+    }
+}
+
+@media (max-width: 768px) {
+    .intakeflow-node-buttons {
+        flex-wrap: wrap;
+    }
+    
+    .intakeflow-builder-toolbar {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 10px;
+    }
+    
+    .intakeflow-builder-toolbar-left,
+    .intakeflow-builder-toolbar-right {
+        width: 100%;
+    }
+    
+    .intakeflow-flow-name-input {
+        width: 100%;
+    }
+    
+    .intakeflow-node-editor {
+        position: fixed;
+        left: 0;
+        right: 0;
+        top: auto;
+        bottom: 0;
+        width: 100%;
+        max-height: 70vh;
+    }
+    
+    .intakeflow-setting-row {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 10px;
+    }
+    
+    .intakeflow-setting-control {
+        flex: 1;
+        width: 100%;
+    }
+}
+
+/* Utility Classes */
+.intakeflow-text-center {
+    text-align: center;
+}
+
+.intakeflow-mb-20 {
+    margin-bottom: 20px;
+}
+
+.intakeflow-mt-20 {
+    margin-top: 20px;
+}
+
+/* Animations */
+@keyframes intakeflow-fade-in {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.intakeflow-node-editor {
+    animation: intakeflow-fade-in 0.2s ease-out;
+}
+
+/* Notice Styles */
+.intakeflow-notice {
+    padding: 12px 15px;
+    margin: 20px 0;
+    border-left: 4px solid #2271b1;
+    background: #f0f6fc;
+    border-radius: 0 4px 4px 0;
+}
+
+.intakeflow-notice.success {
+    border-left-color: #00a32a;
+    background: #f0f6f0;
+}
+
+.intakeflow-notice.warning {
+    border-left-color: #dba617;
+    background: #fcf9e8;
+}
+
+.intakeflow-notice.error {
+    border-left-color: #d63638;
+    background: #fcf0f1;
+}
+
+/**
+ * ACTION NODE CONFIGURATION STYLES
+ * Added in v0.12.0
+ */
+
+/* Action Config Container */
+.intakeflow-action-config {
+    margin-top: 20px;
+    padding-top: 20px;
+    border-top: 1px solid #ddd;
+}
+
+/* Capture Lead Field Rows */
+.intakeflow-capture-fields {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-bottom: 15px;
+}
+
+.intakeflow-capture-field-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px;
+    background: #f9f9f9;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    transition: opacity 0.2s;
+}
+
+.intakeflow-capture-field-row.disabled {
+    opacity: 0.5;
+    background: #f5f5f5;
+}
+
+.intakeflow-capture-field-enable-label {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    min-width: 100px;
+    margin: 0;
+    font-weight: 600;
+    font-size: 13px;
+}
+
+.intakeflow-capture-field-enable-label input[type="checkbox"] {
+    margin: 0;
+}
+
+.intakeflow-field-label {
+    flex: 1;
+    padding: 6px 10px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 13px;
+}
+
+.intakeflow-field-label:disabled {
+    background: #f0f0f0;
+    color: #999;
+    cursor: not-allowed;
+}
+
+.intakeflow-field-required-label {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    min-width: 90px;
+    margin: 0;
+    font-size: 13px;
+    color: #666;
+}
+
+.intakeflow-field-required-label input[type="checkbox"] {
+    margin: 0;
+}
+
+.intakeflow-field-required:disabled {
+    cursor: not-allowed;
+}
+
+/* Action Config Fields */
+.intakeflow-action-config-field {
+    width: 100%;
+    padding: 8px 12px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 13px;
+}
+
+.intakeflow-action-config-field[type="url"],
+.intakeflow-action-config-field[type="email"] {
+    font-family: monospace;
+}
+
+.intakeflow-action-config-field:focus {
+    border-color: #2271b1;
+    outline: none;
+    box-shadow: 0 0 0 1px #2271b1;
+}
+
+/* Notice Boxes in Action Config */
+.intakeflow-action-config .intakeflow-notice {
+    padding: 12px 15px;
+    margin: 0 0 20px 0;
+    border-left: 4px solid #2271b1;
+    background: #f0f6fc;
+    border-radius: 0 4px 4px 0;
+    font-size: 13px;
+    line-height: 1.5;
+}
+
+.intakeflow-action-config .intakeflow-notice.warning {
+    border-left-color: #dba617;
+    background: #fcf9e8;
+}
+
+.intakeflow-action-config .intakeflow-notice p {
+    margin: 0;
+}
+
+.intakeflow-action-config .intakeflow-notice strong {
+    display: block;
+    margin-bottom: 4px;
+}
+
+/* Responsive Adjustments for Action Config */
+@media (max-width: 768px) {
+    .intakeflow-capture-field-row {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
+    }
+    
+    .intakeflow-capture-field-enable-label,
+    .intakeflow-field-required-label {
+        width: 100%;
+    }
+    
+    .intakeflow-field-label {
+        width: 100%;
+    }
+}
+
+/* Visibility Modal */
+.intakeflow-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 100000;
+}
+
+.intakeflow-modal-backdrop {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+}
+
+.intakeflow-modal-content {
+    position: relative;
+    background: #fff;
+    margin: 50px auto;
+    max-width: 600px;
+    border-radius: 8px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+    animation: intakeflow-modal-in 0.2s ease-out;
+}
+
+@keyframes intakeflow-modal-in {
+    from {
+        opacity: 0;
+        transform: scale(0.95) translateY(-20px);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+    }
+}
+
+.intakeflow-modal-header {
+    padding: 20px;
+    border-bottom: 1px solid #ddd;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.intakeflow-modal-header h3 {
+    margin: 0;
+    font-size: 18px;
+}
+
+.intakeflow-modal-close {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 4px;
+    color: #666;
+}
+
+.intakeflow-modal-close:hover {
+    color: #000;
+}
+
+.intakeflow-modal-body {
+    padding: 20px;
+    max-height: 60vh;
+    overflow-y: auto;
+}
+
+.intakeflow-modal-footer {
+    padding: 15px 20px;
+    border-top: 1px solid #ddd;
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+}

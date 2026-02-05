@@ -1,0 +1,26 @@
+# WordPress
+.DS_Store
+*.log
+wp-config.php
+wp-content/uploads/
+
+# Backups & Archives
+*.zip
+*.backup
+*.bak
+*.tar.gz
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+Thumbs.db
+.Spotlight-V100
+.Trashes
+
+# Temporary files
+*.tmp
+*~
