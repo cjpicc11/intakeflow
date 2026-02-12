@@ -1,89 +1,103 @@
 /**
  * IntakeFlow Visual Canvas
- * Simple drag-and-drop canvas
+ * v0.28.9 - FEATURE: Delete connections by hovering and clicking
  */
 
 (function() {
     'use strict';
     
-    console.log('ðŸŽ¨ Initializing IntakeFlow Canvas...');
+    console.log('🎨 Initializing IntakeFlow Canvas v0.28.9...');
     
     const { useState, useCallback, useEffect, useMemo } = React;
     const h = React.createElement;
     
     // Main Canvas Component
     function FlowCanvas(props) {
-        // console.log('ðŸ—ï¸ FlowCanvas mounting with', props.initialNodes?.length || 0, 'nodes');
-        
         const [nodes, setNodes] = useState(props.initialNodes || []);
         const [edges, setEdges] = useState(props.initialEdges || []);
         const [selectedNodeId, setSelectedNodeId] = useState(null);
         const [selectedEdgeId, setSelectedEdgeId] = useState(null);
         const [hoveredEdgeId, setHoveredEdgeId] = useState(null);
         const [draggedNode, setDraggedNode] = useState(null);
-        const [connectingFrom, setConnectingFrom] = useState(null); // Node ID we're connecting from
-        const [panOffset, setPanOffset] = useState({ x: 0, y: 0 }); // Canvas pan offset
+        const [connectingFrom, setConnectingFrom] = useState(null);
+        const [connectionPreviewMouse, setConnectionPreviewMouse] = useState(null);
+        const [panOffset, setPanOffset] = useState({ x: 0, y: 0 });
         const [isPanning, setIsPanning] = useState(false);
         const [panStart, setPanStart] = useState({ x: 0, y: 0 });
         const [zoom, setZoom] = useState(1);
-        const [updateTrigger, setUpdateTrigger] = useState(0); // Force connection recalc
+        const [updateTrigger, setUpdateTrigger] = useState(0);
+        const [isDraggingNode, setIsDraggingNode] = useState(false);
+        const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
         
-        // console.log('ðŸ“Š Canvas state: nodes =', nodes.length);
-        
-        // Debug: Log when nodes actually change - REMOVED TO REDUCE CONSOLE SPAM
-        
-        const handleDragStart = useCallback((e, node) => {
-            e.stopPropagation(); // Prevent canvas pan
-            console.log('ðŸŽ¯ Drag start:', node.id);
+        // New approach: Use mouse events instead of HTML5 drag
+        const handleNodeMouseDown = useCallback((e, node) => {
+            // Only drag on left click, not on handles/buttons
+            if (e.button !== 0) return;
+            if (e.target.closest('.intakeflow-node-delete')) return;
+            if (e.target.classList.contains('intakeflow-node-delete')) return;
+            
+            console.log('🎯 Node mouse down:', node.id);
+            
+            const rect = e.currentTarget.getBoundingClientRect();
+            const offsetX = e.clientX - rect.left;
+            const offsetY = e.clientY - rect.top;
+            
             setDraggedNode(node);
-            e.dataTransfer.effectAllowed = 'move';
+            setIsDraggingNode(true);
+            setDragOffset({ x: offsetX, y: offsetY });
+            
+            e.stopPropagation(); // Prevent canvas pan
         }, []);
         
         const handleDragOver = useCallback((e) => {
             e.preventDefault();
-            e.dataTransfer.dropEffect = 'move';
+            e.stopPropagation();
+            // Accept all drops
+            e.dataTransfer.dropEffect = 'copy';
         }, []);
         
+        // Handle drops from palette only (node movement now uses mouse events)
         const handleDrop = useCallback((e) => {
             e.preventDefault();
-            if (!draggedNode) return;
+            e.stopPropagation();
             
-            const canvas = e.currentTarget;
-            const rect = canvas.getBoundingClientRect();
-            // Account for zoom and pan
-            const x = (e.clientX - rect.left - panOffset.x) / zoom - 100;
-            const y = (e.clientY - rect.top - panOffset.y) / zoom - 25;
+            console.log('📥 Drop event on canvas (React handler)');
             
-            console.log('ðŸ“ Drop at', x, y);
+            const paletteNodeType = e.dataTransfer.getData('intakeflow/node-type');
             
-            setNodes(prevNodes => 
-                prevNodes.map(n => 
-                    n.id === draggedNode.id 
-                        ? { ...n, position: { x, y } }
-                        : n
-                )
-            );
+            console.log('🔍 Drop data:', { paletteNodeType });
             
-            setDraggedNode(null);
-        }, [draggedNode, zoom, panOffset]);
+            // ONLY handle palette drops
+            if (paletteNodeType) {
+                console.log('🎨 Palette drop - creating node');
+                
+                const canvas = e.currentTarget;
+                const rect = canvas.getBoundingClientRect();
+                const dropX = (e.clientX - rect.left - panOffset.x) / zoom;
+                const dropY = (e.clientY - rect.top - panOffset.y) / zoom;
+                
+                if (window.IntakeFlowBuilder && window.IntakeFlowBuilder.addNodeAtPosition) {
+                    window.IntakeFlowBuilder.addNodeAtPosition(paletteNodeType, dropX, dropY, false);
+                }
+                return;
+            }
+            
+            console.log('⚠️ Not a palette drop - ignoring');
+        }, [zoom, panOffset]);
         
         const handleNodeDoubleClick = useCallback((node) => {
-            console.log('ðŸ–±ï¸ Node double-clicked:', node.id);
+            console.log('🖱️ Node double-clicked:', node.id);
             setSelectedNodeId(node.id);
             if (props.onNodeClick) {
                 props.onNodeClick(node);
             }
         }, [props]);
         
-        // CLICK-BASED CONNECTION: Click output handle, then click input handle
         const handleOutputClick = useCallback((e, node, handleId = null) => {
             e.stopPropagation();
-            
-            // Build connectingFrom string with handleId if provided
             const connectionId = handleId ? `${node.id}:${handleId}` : node.id;
             
             if (connectingFrom === connectionId) {
-                // Clicked same handle - cancel
                 console.log('❌ Connection cancelled');
                 setConnectingFrom(null);
             } else {
@@ -96,19 +110,19 @@
             e.stopPropagation();
             
             if (!connectingFrom) {
-                console.log('âš ï¸ No connection in progress');
+                console.log('⚠️ No connection in progress');
                 return;
             }
             
             if (connectingFrom === targetNode.id) {
-                console.log('âŒ Cannot connect to self');
+                console.log('❌ Cannot connect to self');
                 setConnectingFrom(null);
+                setConnectionPreviewMouse(null);
                 return;
             }
             
-            console.log('âœ… Connection complete:', connectingFrom, 'â†’', targetNode.id);
+            console.log('✅ Connection complete:', connectingFrom, '→', targetNode.id);
             
-            // Parse connectingFrom which may be "nodeId" or "nodeId:handleId"
             const [sourceNodeId, sourceHandleId] = connectingFrom.includes(':') 
                 ? connectingFrom.split(':') 
                 : [connectingFrom, null];
@@ -116,7 +130,7 @@
             const newEdge = {
                 id: `edge-${Date.now()}`,
                 source: sourceNodeId,
-                sourceHandle: sourceHandleId,  // Will be null for single-output nodes
+                sourceHandle: sourceHandleId,
                 target: targetNode.id,
                 type: 'smoothstep',
                 animated: true
@@ -125,14 +139,11 @@
             setEdges(prevEdges => {
                 const updatedEdges = [...prevEdges, newEdge];
                 
-                // IMPORTANT: Notify admin.js that edges changed
-                // If branch editor is open for target node, refresh it
                 setTimeout(() => {
                     if (window.IntakeFlowBuilder && window.IntakeFlowBuilder.selectedNode) {
                         const selectedNode = window.IntakeFlowBuilder.selectedNode;
-                        // If the target of this new connection is currently being edited, refresh the editor
                         if (selectedNode.id === targetNode.id && selectedNode.data.nodeType === 'branch') {
-                            console.log('ðŸ”„ Refreshing branch editor with new connection');
+                            console.log('🔄 Refreshing branch editor with new connection');
                             window.IntakeFlowBuilder.selectNode(selectedNode);
                         }
                     }
@@ -141,11 +152,10 @@
                 return updatedEdges;
             });
             setConnectingFrom(null);
+            setConnectionPreviewMouse(null);
         }, [connectingFrom]);
         
-        // Pan the canvas with mouse drag
         const handleCanvasMouseDown = useCallback((e) => {
-            // Only pan if clicking the canvas background (not a node)
             if (e.target.id === 'intakeflow-canvas' || e.target.classList.contains('canvas-background')) {
                 setIsPanning(true);
                 setPanStart({ x: e.clientX - panOffset.x, y: e.clientY - panOffset.y });
@@ -158,14 +168,42 @@
                     x: e.clientX - panStart.x,
                     y: e.clientY - panStart.y
                 });
+            } else if (isDraggingNode && draggedNode) {
+                // Node dragging
+                const canvas = document.getElementById('intakeflow-canvas');
+                const rect = canvas.getBoundingClientRect();
+                
+                const newX = (e.clientX - rect.left - panOffset.x - dragOffset.x) / zoom;
+                const newY = (e.clientY - rect.top - panOffset.y - dragOffset.y) / zoom;
+                
+                setNodes(prevNodes => 
+                    prevNodes.map(n => 
+                        n.id === draggedNode.id 
+                            ? { ...n, position: { x: newX, y: newY } }
+                            : n
+                    )
+                );
+            } else if (connectingFrom) {
+                // Connection preview - track mouse position
+                const canvas = document.getElementById('intakeflow-canvas');
+                const rect = canvas.getBoundingClientRect();
+                setConnectionPreviewMouse({
+                    x: e.clientX - rect.left,
+                    y: e.clientY - rect.top
+                });
             }
-        }, [isPanning, panStart]);
+        }, [isPanning, panStart, isDraggingNode, draggedNode, zoom, panOffset, dragOffset, connectingFrom]);
         
         const handleCanvasMouseUp = useCallback(() => {
+            if (isDraggingNode) {
+                console.log('✅ Node drag complete');
+                setIsDraggingNode(false);
+                setDraggedNode(null);
+                setDragOffset({ x: 0, y: 0 });
+            }
             setIsPanning(false);
-        }, []);
+        }, [isDraggingNode]);
         
-        // Zoom with mouse wheel
         const handleWheel = useCallback((e) => {
             e.preventDefault();
             const delta = e.deltaY * -0.001;
@@ -173,67 +211,47 @@
             setZoom(newZoom);
         }, [zoom]);
         
-        // Cancel connection on canvas click
         const handleCanvasClick = useCallback((e) => {
             if (e.target.id === 'intakeflow-canvas' || e.target.classList.contains('canvas-background')) {
                 if (connectingFrom) {
-                    console.log('âŒ Connection cancelled (clicked canvas)');
+                    console.log('❌ Connection cancelled (clicked canvas)');
                     setConnectingFrom(null);
+                    setConnectionPreviewMouse(null);
                 }
             }
         }, [connectingFrom]);
         
-        // Expose API - Use useMemo to prevent unnecessary re-creation
         const apiInstance = useMemo(() => ({
-            getFlow: () => {
-                console.log('ðŸ“¤ getFlow() returning', nodes.length, 'nodes', edges.length, 'edges');
-                return { nodes, edges };
-            },
+            getFlow: () => ({ nodes, edges }),
             setFlow: (flowData) => {
-                console.log('ðŸ“¥ setFlow() received', flowData.nodes?.length || 0, 'nodes');
-                if (flowData.nodes) {
-                    setNodes([...flowData.nodes]); // Force new array reference
-                }
-                if (flowData.edges) {
-                    setEdges([...flowData.edges]);
-                }
-            }
-        }), [nodes, edges]);
+                if (flowData.nodes) setNodes([...flowData.nodes]);
+                if (flowData.edges) setEdges([...flowData.edges]);
+            },
+            getState: () => ({ zoom, panOffset })
+        }), [nodes, edges, zoom, panOffset]);
         
         useEffect(() => {
             window.IntakeFlowReactInstance = apiInstance;
-            console.log('âœ… IntakeFlowReactInstance API updated');
-            
-            return () => {
-                delete window.IntakeFlowReactInstance;
-            };
+            console.log('✅ IntakeFlowReactInstance API updated');
+            return () => { delete window.IntakeFlowReactInstance; };
         }, [apiInstance]);
         
-        // Sync with props
         useEffect(() => {
             if (props.initialNodes && props.initialNodes.length !== nodes.length) {
-                console.log('ðŸ”„ Syncing from props:', props.initialNodes.length, 'nodes');
+                console.log('🔄 Syncing from props:', props.initialNodes.length, 'nodes');
                 setNodes(props.initialNodes);
             }
         }, [props.initialNodes]);
         
-        // Force connection recalculation after nodes render (for dynamic sizing)
         useEffect(() => {
-            // Wait for DOM to update, then trigger recalc
-            const timer = setTimeout(() => {
-                setUpdateTrigger(prev => prev + 1);
-            }, 50);
+            const timer = setTimeout(() => setUpdateTrigger(prev => prev + 1), 50);
             return () => clearTimeout(timer);
         }, [nodes, edges]);
         
-        // console.log('🎨 Rendering canvas with', nodes.length, 'nodes and', edges.length, 'edges');
-        
-        // Helper function to get handle position (accounting for zoom and pan)
         const getHandlePosition = useCallback((node, side, handleId = null) => {
             const baseX = node.position.x * zoom + panOffset.x;
             const baseY = node.position.y * zoom + panOffset.y;
             
-            // Try to get actual DOM dimensions
             const nodeElement = document.querySelector(`[data-node-id="${node.id}"]`);
             let actualWidth, actualHeight;
             
@@ -242,7 +260,6 @@
                 actualWidth = rect.width;
                 actualHeight = rect.height;
             } else {
-                // Fallback to estimates
                 const paddingX = 20 * zoom;
                 const paddingY = 15 * zoom;
                 const nodeContentWidth = 200 * zoom;
@@ -252,58 +269,34 @@
             }
             
             if (side === 'bottom') {
-                // For Branch nodes with multiple handles (output groups)
                 if (node.data.nodeType === 'branch' && node.data.output_groups && node.data.output_groups.length > 0) {
-                    // If handleId specified, find that specific handle
                     if (handleId) {
                         const groupIndex = node.data.output_groups.findIndex(group => group.id === handleId);
                         if (groupIndex !== -1) {
                             const totalGroups = node.data.output_groups.length;
                             const handleX = baseX + ((groupIndex + 1) / (totalGroups + 1)) * actualWidth;
-                            
-                            return {
-                                x: handleX,
-                                y: baseY + actualHeight
-                            };
+                            return { x: handleX, y: baseY + actualHeight };
                         }
                     }
-                    
-                    // If no handleId or not found, use first handle position
                     const totalGroups = node.data.output_groups.length;
                     const handleX = baseX + (1 / (totalGroups + 1)) * actualWidth;
-                    
-                    return {
-                        x: handleX,
-                        y: baseY + actualHeight
-                    };
+                    return { x: handleX, y: baseY + actualHeight };
                 }
-                
-                // Default: centered bottom handle
-                return {
-                    x: baseX + (actualWidth / 2),
-                    y: baseY + actualHeight
-                };
+                return { x: baseX + (actualWidth / 2), y: baseY + actualHeight };
             } else {
-                // Input handle always centered on top
-                return {
-                    x: baseX + (actualWidth / 2),
-                    y: baseY
-                };
+                return { x: baseX + (actualWidth / 2), y: baseY };
             }
         }, [zoom, panOffset, updateTrigger]);
         
-        // Render connection lines (edges)
         const connectionLines = edges.map(edge => {
             const sourceNode = nodes.find(n => n.id === edge.source);
             const targetNode = nodes.find(n => n.id === edge.target);
             
             if (!sourceNode || !targetNode) return null;
             
-            
             const start = getHandlePosition(sourceNode, 'bottom', edge.sourceHandle);
             const end = getHandlePosition(targetNode, 'top');
             
-            // Shorten the path by handle radius (6px) so arrow points to handle edge
             const handleRadius = 6;
             const dx = end.x - start.x;
             const dy = end.y - start.y;
@@ -313,9 +306,14 @@
             const adjustedEndX = start.x + dx * shortenFactor;
             const adjustedEndY = start.y + dy * shortenFactor;
             
-            // Simple curved path (vertical)
             const midY = (start.y + adjustedEndY) / 2;
             const path = `M ${start.x} ${start.y} C ${start.x} ${midY}, ${adjustedEndX} ${midY}, ${adjustedEndX} ${adjustedEndY}`;
+            
+            const isHovered = hoveredEdgeId === edge.id;
+            
+            // Calculate midpoint for delete button
+            const midX = (start.x + adjustedEndX) / 2;
+            const midPointY = (start.y + adjustedEndY) / 2;
             
             return h('svg', {
                 key: edge.id,
@@ -329,17 +327,101 @@
                     zIndex: 0
                 }
             }, [
+                // Invisible wider path for easier hovering/clicking
                 h('path', {
                     d: path,
-                    stroke: '#2196f3',
-                    strokeWidth: 2,
+                    stroke: 'transparent',
+                    strokeWidth: 20,
                     fill: 'none',
-                    markerEnd: 'url(#arrowhead)'
-                })
+                    style: { pointerEvents: 'stroke', cursor: 'pointer' },
+                    onMouseEnter: () => setHoveredEdgeId(edge.id),
+                    onMouseLeave: () => setHoveredEdgeId(null),
+                    onClick: (e) => {
+                        e.stopPropagation();
+                        if (confirm('Delete this connection?')) {
+                            console.log('🗑️ Deleting edge:', edge.id);
+                            setEdges(prevEdges => prevEdges.filter(e => e.id !== edge.id));
+                        }
+                    }
+                }),
+                // Visible connection line
+                h('path', {
+                    d: path,
+                    stroke: isHovered ? '#d32f2f' : '#2196f3',
+                    strokeWidth: isHovered ? 3 : 2,
+                    fill: 'none',
+                    markerEnd: 'url(#arrowhead)',
+                    style: { 
+                        pointerEvents: 'none',
+                        transition: 'stroke 0.2s, stroke-width 0.2s'
+                    }
+                }),
+                // Delete button on hover
+                isHovered ? h('g', {
+                    style: { pointerEvents: 'none' }
+                }, [
+                    h('circle', {
+                        cx: midX,
+                        cy: midPointY,
+                        r: 12,
+                        fill: '#d32f2f',
+                        stroke: '#fff',
+                        strokeWidth: 2
+                    }),
+                    h('text', {
+                        x: midX,
+                        y: midPointY,
+                        textAnchor: 'middle',
+                        dominantBaseline: 'middle',
+                        fill: '#fff',
+                        fontSize: '16px',
+                        fontWeight: 'bold',
+                        style: { userSelect: 'none' }
+                    }, '×')
+                ]) : null
             ]);
         });
         
-        // Render nodes with zoom and pan transform
+        // Connection preview line (while dragging)
+        const connectionPreviewLine = (() => {
+            if (!connectingFrom || !connectionPreviewMouse) return null;
+            
+            const [sourceNodeId, sourceHandleId] = connectingFrom.includes(':') 
+                ? connectingFrom.split(':') 
+                : [connectingFrom, null];
+            
+            const sourceNode = nodes.find(n => n.id === sourceNodeId);
+            if (!sourceNode) return null;
+            
+            const start = getHandlePosition(sourceNode, 'bottom', sourceHandleId);
+            const end = { x: connectionPreviewMouse.x, y: connectionPreviewMouse.y };
+            
+            const midY = (start.y + end.y) / 2;
+            const path = `M ${start.x} ${start.y} C ${start.x} ${midY}, ${end.x} ${midY}, ${end.x} ${end.y}`;
+            
+            return h('svg', {
+                key: 'connection-preview',
+                style: {
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    width: '100%',
+                    height: '100%',
+                    pointerEvents: 'none',
+                    zIndex: 100
+                }
+            }, [
+                h('path', {
+                    d: path,
+                    stroke: '#ff9800',
+                    strokeWidth: 3,
+                    strokeDasharray: '8,4',
+                    fill: 'none',
+                    opacity: 0.7
+                })
+            ]);
+        })();
+        
         const nodeElements = nodes.map(node => {
             const colors = {
                 message: { bg: '#e3f2fd', border: '#2196f3', text: '#1976d2' },
@@ -357,7 +439,7 @@
             return h('div', {
                 key: node.id,
                 className: 'intakeflow-node-container',
-                'data-node-id': node.id,  // For DOM lookups
+                'data-node-id': node.id,
                 style: {
                     position: 'absolute',
                     left: (node.position.x * zoom + panOffset.x) + 'px',
@@ -367,18 +449,17 @@
                     border: `${2 * zoom}px solid ${color.border}`,
                     background: color.bg,
                     minWidth: (200 * zoom) + 'px',
-                    cursor: 'move',
+                    cursor: isDraggingNode && draggedNode && draggedNode.id === node.id ? 'grabbing' : 'grab',
                     boxShadow: isSelected ? '0 4px 12px rgba(0,0,0,0.2)' : '0 2px 4px rgba(0,0,0,0.1)',
                     transform: `scale(${isSelected ? 1.02 : 1})`,
-                    transition: 'all 0.2s',
-                    zIndex: isSelected ? 10 : 1,
-                    fontSize: (13 * zoom) + 'px'
+                    transition: isDraggingNode && draggedNode && draggedNode.id === node.id ? 'none' : 'all 0.2s',
+                    zIndex: isSelected ? 10 : (isDraggingNode && draggedNode && draggedNode.id === node.id ? 100 : 1),
+                    fontSize: (13 * zoom) + 'px',
+                    userSelect: 'none'
                 },
-                draggable: true,
-                onDragStart: (e) => handleDragStart(e, node),
+                onMouseDown: (e) => handleNodeMouseDown(e, node),
                 onDoubleClick: () => handleNodeDoubleClick(node)
             }, [
-                // Delete button (top-right corner, shows on hover)
                 h('button', {
                     key: 'delete-btn',
                     className: 'intakeflow-node-delete',
@@ -399,25 +480,23 @@
                         justifyContent: 'center',
                         opacity: 0,
                         transition: 'opacity 0.2s',
-                        zIndex: 20
+                        zIndex: 20,
+                        pointerEvents: 'auto'
                     },
+                    onMouseDown: (e) => e.stopPropagation(),
                     onClick: (e) => {
                         e.stopPropagation();
                         if (confirm('Delete this node?')) {
-                            // Call admin.js delete function
                             if (window.IntakeFlowBuilder) {
                                 window.IntakeFlowBuilder.selectedNode = node;
                                 window.IntakeFlowBuilder.deleteNode();
                             }
                         }
                     },
-                    onMouseEnter: (e) => {
-                        e.target.style.opacity = '1';
-                    },
+                    onMouseEnter: (e) => { e.target.style.opacity = '1'; },
                     title: 'Delete node'
                 }, '×'),
                 
-                // Input handle (top) - CLICK to complete connection
                 h('div', {
                     key: 'input-handle',
                     style: {
@@ -431,24 +510,22 @@
                         background: '#fff',
                         border: `${2 * zoom}px solid ${color.border}`,
                         cursor: 'pointer',
-                        zIndex: 10
+                        zIndex: 10,
+                        pointerEvents: 'auto'
                     },
+                    onMouseDown: (e) => e.stopPropagation(),
                     onClick: (e) => handleInputClick(e, node),
                     title: connectingFrom ? 'Click to complete connection' : 'Input'
                 }),
                 
-                // Output handles - dynamic based on node type
                 ...(function() {
                     const nodeType = node.data.nodeType;
                     
-                    // Branch nodes: one handle per output group (bottom horizontal)
                     if (nodeType === 'branch' && node.data.output_groups && node.data.output_groups.length > 0) {
                         return node.data.output_groups.map((group, index) => {
                             const totalGroups = node.data.output_groups.length;
-                            const handleLeft = ((index + 1) / (totalGroups + 1)) * 100; // Distribute evenly horizontally
+                            const handleLeft = ((index + 1) / (totalGroups + 1)) * 100;
                             const isThisHandleConnecting = connectingFrom === node.id + ':' + group.id;
-                            
-                            // Create tooltip from group conditions
                             const tooltip = group.conditions.map(c => c.value).join(' ' + group.logic.toUpperCase() + ' ');
                             
                             return h('div', {
@@ -465,8 +542,10 @@
                                     border: `${2 * zoom}px solid #fff`,
                                     cursor: 'pointer',
                                     zIndex: 10,
-                                    boxShadow: isThisHandleConnecting ? '0 0 0 4px rgba(255,152,0,0.3)' : 'none'
+                                    boxShadow: isThisHandleConnecting ? '0 0 0 4px rgba(255,152,0,0.3)' : 'none',
+                                    pointerEvents: 'auto'
                                 },
+                                onMouseDown: (e) => e.stopPropagation(),
                                 onClick: (e) => {
                                     e.stopPropagation();
                                     handleOutputClick(e, node, group.id);
@@ -476,7 +555,6 @@
                         });
                     }
                     
-                    // All other nodes: single centered output handle (bottom)
                     return [h('div', {
                         key: 'output-handle',
                         style: {
@@ -491,36 +569,45 @@
                             border: `${2 * zoom}px solid #fff`,
                             cursor: 'pointer',
                             zIndex: 10,
-                            boxShadow: isConnecting ? '0 0 0 4px rgba(255,152,0,0.3)' : 'none'
+                            boxShadow: isConnecting ? '0 0 0 4px rgba(255,152,0,0.3)' : 'none',
+                            pointerEvents: 'auto'
                         },
+                        onMouseDown: (e) => e.stopPropagation(),
                         onClick: (e) => handleOutputClick(e, node),
                         title: isConnecting ? 'Click again to cancel' : 'Click to start connection'
                     })];
                 })(),
                 
                 h('div', {
-                    key: 'type',
+                    key: 'content-wrapper',
                     style: {
-                        fontWeight: 'bold',
-                        fontSize: (10 * zoom) + 'px',
-                        color: color.text,
-                        marginBottom: (8 * zoom) + 'px',
-                        textTransform: 'uppercase',
-                        letterSpacing: '0.5px'
+                        pointerEvents: 'none',
+                        userSelect: 'none'
                     }
-                }, node.data.nodeType || 'NODE'),
-                h('div', {
-                    key: 'label',
-                    style: {
-                        fontSize: (13 * zoom) + 'px',
-                        color: '#333',
-                        lineHeight: '1.4'
-                    }
-                }, node.data.label || 'Untitled')
+                }, [
+                    h('div', {
+                        key: 'type',
+                        style: {
+                            fontWeight: 'bold',
+                            fontSize: (10 * zoom) + 'px',
+                            color: color.text,
+                            marginBottom: (8 * zoom) + 'px',
+                            textTransform: 'uppercase',
+                            letterSpacing: '0.5px'
+                        }
+                    }, node.data.nodeType || 'NODE'),
+                    h('div', {
+                        key: 'label',
+                        style: {
+                            fontSize: (13 * zoom) + 'px',
+                            color: '#333',
+                            lineHeight: '1.4'
+                        }
+                    }, node.data.label || 'Untitled')
+                ])
             ]);
         });
         
-        // Canvas container with pan and zoom
         return h('div', {
             id: 'intakeflow-canvas',
             className: 'canvas-background',
@@ -543,7 +630,6 @@
             onMouseUp: handleCanvasMouseUp,
             onWheel: handleWheel
         }, [
-            // SVG definitions for arrowheads
             h('svg', {
                 key: 'defs',
                 style: { position: 'absolute', width: 0, height: 0 }
@@ -566,10 +652,9 @@
                 ])
             ]),
             
-            // Connection lines
             ...connectionLines,
+            connectionPreviewLine,
             
-            // Canvas controls (zoom, reset)
             h('div', {
                 key: 'controls',
                 style: {
@@ -627,7 +712,6 @@
                 }, '↻')
             ]),
             
-            // Node counter and connection status
             h('div', {
                 key: 'info',
                 style: {
@@ -647,10 +731,9 @@
                 connectingFrom ? h('div', {
                     key: 'connecting',
                     style: { color: '#ff9800', fontWeight: 'bold', marginTop: '4px' }
-                }, 'ðŸ”— Click input to connect') : null
+                }, '🔗 Click input to connect') : null
             ]),
             
-            // Zoom indicator
             h('div', {
                 key: 'zoom-indicator',
                 style: {
@@ -667,10 +750,8 @@
                 }
             }, `${Math.round(zoom * 100)}%`),
             
-            // Render all nodes
             ...nodeElements,
             
-            // Empty state
             nodes.length === 0 ? h('div', {
                 key: 'empty',
                 style: {
@@ -683,14 +764,13 @@
                     fontSize: '14px'
                 }
             }, [
-                h('div', { key: 'icon', style: { fontSize: '48px', marginBottom: '10px' } }, '-'),
-                h('div', { key: 'text' }, 'Click "Add Node" buttons above to start building your flow')
+                h('div', { key: 'icon', style: { fontSize: '48px', marginBottom: '10px' } }, '📋'),
+                h('div', { key: 'text' }, 'Drag nodes from palette above or click buttons to add')
             ]) : null
         ]);
     }
     
-    // Expose globally with a different name to avoid conflicts
     window.IntakeFlowCanvasComponent = FlowCanvas;
-    console.log('âœ…âœ…âœ… IntakeFlow Canvas ready! âœ…âœ…âœ…');
+    console.log('✅✅✅ IntakeFlow Canvas v0.28.9 ready! ✅✅✅');
     
 })();

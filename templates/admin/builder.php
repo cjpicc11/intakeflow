@@ -66,17 +66,23 @@ if (!defined('ABSPATH')) {
             
             <!-- Node Palette -->
             <div class="intakeflow-node-palette">
-                <h3>Add Nodes</h3>
+                <h3>💡 Drag nodes onto canvas or click to add</h3>
                 <div class="intakeflow-node-buttons">
-                    <button class="intakeflow-add-node" data-type="question">
+                <button class="intakeflow-add-node intakeflow-draggable-node" 
+                    data-type="question"
+                    draggable="true">
                         <span class="dashicons dashicons-format-chat"></span>
                         Message
                     </button>
-                    <button class="intakeflow-add-node" data-type="branch">
+                    <button class="intakeflow-add-node intakeflow-draggable-node" 
+                    data-type="branch"
+                    draggable="true">
                         <span class="dashicons dashicons-randomize"></span>
                         Branch
                     </button>
-                    <button class="intakeflow-add-node" data-type="action">
+                    <button class="intakeflow-add-node intakeflow-draggable-node" 
+                    data-type="action"
+                    draggable="true">
                         <span class="dashicons dashicons-admin-generic"></span>
                         Action
                     </button>
@@ -540,5 +546,35 @@ if (!defined('ABSPATH')) {
     text-align: center;
     padding: 20px;
     color: #666;
+}
+.intakeflow-draggable-node.dragging {
+    opacity: 0.5;
+    cursor: grabbing;
+}
+
+.intakeflow-canvas.drag-over {
+    background-color: #f0f6fc;
+    border: 2px dashed #2271b1;
+}
+
+.intakeflow-add-node {
+    cursor: grab;
+}
+
+.intakeflow-add-node:active {
+    cursor: grabbing;
+}
+
+.intakeflow-add-node:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 2px 8px rgba(34, 113, 177, 0.2);
+}
+
+.intakeflow-node-palette {
+    background: #f0f6fc;
+}
+
+.intakeflow-node-palette h3 {
+    color: #2271b1;
 }
 </style>

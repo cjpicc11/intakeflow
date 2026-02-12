@@ -3,7 +3,7 @@
  * Plugin Name: IntakeFlow
  * Plugin URI: https://intakeflow.com
  * Description: Visual chatbot flow builder for WordPress with smart lead capture
- * Version: 0.27.2
+ * Version: 0.28.9
  * Author: IntakeFlow
  * Author URI: https://intakeflow.com
  * License: GPL v2 or later
@@ -18,7 +18,7 @@ if (!defined('ABSPATH')) {
 }
 
 // Plugin constants
-define('INTAKEFLOW_VERSION', '0.27.2');
+define('INTAKEFLOW_VERSION', '0.28.9');
 define('INTAKEFLOW_PATH', plugin_dir_path(__FILE__));
 define('INTAKEFLOW_URL', plugin_dir_url(__FILE__));
 

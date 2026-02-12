@@ -18,6 +18,7 @@
         
         init: function() {
             this.bindEvents();
+            this.bindDragDropEvents(); 
             this.loadFlows();
             
             // Wait a bit for React to be available, then initialize canvas
@@ -144,6 +145,108 @@
                 $('#intakeflow-visibility-settings').text(selectedCount + ' role(s) selected');
             });
         },
+
+        
+
+        bindDragDropEvents: function() {
+            const self = this;
+            
+            console.log('🎯 Binding palette drag events...');
+            
+            $('.intakeflow-draggable-node').on('dragstart', function(e) {
+                const nodeType = $(this).data('type');
+                console.log('🎨 Palette drag started:', nodeType);
+                
+                e.originalEvent.dataTransfer.setData('intakeflow/node-type', nodeType);
+                e.originalEvent.dataTransfer.effectAllowed = 'copy';
+                
+                $(this).addClass('dragging');
+                $(this).one('dragend', function() {
+                    $(this).removeClass('dragging');
+                });
+            });
+            
+            console.log('✅ Palette drag events bound (React handles drops)');
+        },
+        
+        
+        addNodeAtPosition: function(nodeType, x, y, isStart = false) {
+            console.log('🔵 addNodeAtPosition called:', nodeType, 'at', x, y);
+            
+            if (window.IntakeFlowReactInstance) {
+                const currentFlow = window.IntakeFlowReactInstance.getFlow();
+                if (currentFlow.nodes) this.nodes = currentFlow.nodes;
+                if (currentFlow.edges) this.edges = currentFlow.edges;
+            }
+            
+            const nodeId = 'node_' + this.nodeIdCounter++;
+            const adjustedX = x - 125;
+            const adjustedY = y - 50;
+            
+            const newNode = {
+                id: nodeId,
+                type: 'custom',
+                position: { x: adjustedX, y: adjustedY },
+                data: {
+                    nodeType: nodeType,
+                    label: this.getNodeLabel(nodeType),
+                    is_start: isStart
+                }
+            };
+            
+            // Add type-specific defaults (same as addNode)
+            switch (nodeType) {
+                case 'question':
+                    newNode.data.message = 'What are you interested in?';
+                    newNode.data.auto_continue = false;
+                    newNode.data.delay = 0;
+                    newNode.data.allow_text_input = false;
+                    newNode.data.text_placeholder = 'Type your message...';
+                    newNode.data.options = [
+                        { id: 'opt_1', label: 'Option 1' },
+                        { id: 'opt_2', label: 'Option 2' }
+                    ];
+                    newNode.data.label = '🔘 What are you interested in?';
+                    break;
+                case 'branch':
+                    newNode.data.output_groups = [
+                        { 
+                            id: 'group_1', 
+                            label: 'Output 1',
+                            conditions: [{ id: 'cond_1', operator: 'equals', value: '' }],
+                            logic: 'and'
+                        }
+                    ];
+                    newNode.data.label = 'Branch Logic';
+                    break;
+                case 'action':
+                    newNode.data.action_type = 'capture_lead';
+                    newNode.data.label = 'Capture Lead';
+                    newNode.data.config = {
+                        fields: {
+                            name: { enabled: true, label: 'Your Name', required: true },
+                            email: { enabled: true, label: 'Email Address', required: true },
+                            phone: { enabled: false, label: 'Phone Number', required: false },
+                            company: { enabled: false, label: 'Company', required: false }
+                        },
+                        success_message: "Thanks! We'll be in touch soon."
+                    };
+                    break;
+            }
+            
+            this.nodes.push(newNode);
+            
+            console.log('✅ Node created at:', newNode.position);
+            
+            if (window.IntakeFlowReactInstance) {
+                window.IntakeFlowReactInstance.setFlow({
+                    nodes: this.nodes,
+                    edges: this.edges
+                });
+            }
+            
+            this.selectNode(newNode);
+        },
         
         initCanvas: function() {
             const self = this;
@@ -246,47 +349,37 @@
                 const currentFlow = window.IntakeFlowReactInstance.getFlow();
                 if (currentFlow.nodes) {
                     this.nodes = currentFlow.nodes;
-                    // console.log('📍 Synced', this.nodes.length, 'node positions from canvas');
                 }
                 if (currentFlow.edges) {
                     this.edges = currentFlow.edges;
-                    // console.log('🔗 Synced', this.edges.length, 'edges from canvas');
                 }
             }
             
-            const nodeId = 'node_' + this.nodeIdCounter++;
-            
-            // Smart grid-based positioning to prevent overlaps
-            const nodeWidth = 250;  // Approximate with padding
-            const nodeHeight = 100; // Approximate with padding  
+            // Use grid positioning for clicked adds
+            const nodeWidth = 250;
+            const nodeHeight = 100;
             const startX = 100;
             const startY = 50;
-            const gridSize = 300; // Space between grid positions
+            const gridSize = 300;
             
             let newX = startX;
             let newY = startY;
             
-            // If we have existing nodes, use grid-based positioning
             if (this.nodes.length > 0) {
-                // Create a grid occupation map
                 const occupied = new Set();
                 this.nodes.forEach(node => {
-                    // Round position to nearest grid point
                     const gridX = Math.round(node.position.x / gridSize);
                     const gridY = Math.round(node.position.y / gridSize);
                     occupied.add(`${gridX},${gridY}`);
                 });
                 
-                // Find first empty grid spot (spiral outward from origin)
                 let found = false;
                 let radius = 0;
-                const maxRadius = 20; // Search up to 20 grid units away
+                const maxRadius = 20;
                 
                 while (!found && radius < maxRadius) {
-                    // Check positions at current radius (spiral pattern)
                     for (let dx = -radius; dx <= radius && !found; dx++) {
                         for (let dy = -radius; dy <= radius && !found; dy++) {
-                            // Only check perimeter at this radius
                             if (radius === 0 || Math.abs(dx) === radius || Math.abs(dy) === radius) {
                                 const gridX = dx;
                                 const gridY = dy;
@@ -303,7 +396,6 @@
                     radius++;
                 }
                 
-                // Fallback: if no spot found, place to the far right
                 if (!found) {
                     let maxX = startX;
                     this.nodes.forEach(node => {
@@ -316,114 +408,8 @@
                 }
             }
             
-            const newNode = {
-                id: nodeId,
-                type: 'custom',
-                position: { x: newX, y: newY },
-                data: {
-                    nodeType: nodeType,
-                    label: this.getNodeLabel(nodeType),
-                    is_start: isStart
-                }
-            };
-            
-            // Add type-specific default data
-            switch (nodeType) {
-                case 'message':
-                    // DEPRECATED: Convert to question with auto-continue
-                    newNode.data.nodeType = 'question'; // Migrate to question
-                    newNode.data.message = 'Hello! How can we help you today?';
-                    newNode.data.auto_continue = true;
-                    newNode.data.delay = 2; // 2 second delay
-                    newNode.data.allow_text_input = false;
-                    newNode.data.options = [];
-                    newNode.data.label = 'Hello! How can we help you today?';
-                    break;
-                case 'question':
-                    newNode.data.message = 'What are you interested in?';
-                    newNode.data.auto_continue = false; // Wait for response
-                    newNode.data.delay = 0;
-                    newNode.data.allow_text_input = false; // Buttons only by default
-                    newNode.data.text_placeholder = 'Type your message...';
-                    newNode.data.options = [
-                        { id: 'opt_1', label: 'Therapy Services' },
-                        { id: 'opt_2', label: 'Wellness Services' }
-                    ];
-                    newNode.data.label = 'What are you interested in?';
-                    break;
-                case 'output':
-                    // DEPRECATED: Convert to question with buttons
-                    newNode.data.nodeType = 'question'; // Migrate to question
-                    newNode.data.message = 'Great choice! Let me help you with that.';
-                    newNode.data.auto_continue = false;
-                    newNode.data.delay = 0;
-                    newNode.data.allow_text_input = false;
-                    newNode.data.options = [];
-                    newNode.data.label = 'Great choice! Let me help you with...';
-                    break;
-                case 'click':
-                    // DEPRECATED: Convert to question
-                    newNode.data.nodeType = 'question'; // Migrate to question
-                    newNode.data.message = 'Please select an option';
-                    newNode.data.auto_continue = false;
-                    newNode.data.allow_text_input = false;
-                    newNode.data.options = [];
-                    newNode.data.label = 'Please select an option';
-                    break;
-                case 'branch':
-                    newNode.data.output_groups = [
-                        { 
-                            id: 'group_1', 
-                            label: 'Output 1',
-                            conditions: [
-                                { id: 'cond_1', operator: 'equals', value: '' }
-                            ],
-                            logic: 'and' // Logic between conditions in this group
-                        }
-                    ];
-                    newNode.data.label = 'Branch Logic';
-                    break;
-                case 'action':
-                    newNode.data.action_type = 'capture_lead';
-                    newNode.data.label = 'Capture Lead';
-                    newNode.data.config = {
-                        fields: {
-                            name: { enabled: true, label: 'Your Name', required: true },
-                            email: { enabled: true, label: 'Email Address', required: true },
-                            phone: { enabled: false, label: 'Phone Number', required: false },
-                            company: { enabled: false, label: 'Company', required: false }
-                        },
-                        success_message: "Thanks! We'll be in touch soon."
-                    };
-                    break;
-            }
-            
-            this.nodes.push(newNode);
-            
-            console.log('✅ Node created:', newNode);
-            console.log('📊 Total nodes now:', this.nodes.length);
-            
-            // Update canvas if available
-            const updateCanvas = (retries = 0) => {
-                if (window.IntakeFlowReactInstance) {
-                    // console.log('🎯 Calling setFlow with', this.nodes.length, 'nodes');
-                    window.IntakeFlowReactInstance.setFlow({
-                        nodes: this.nodes,
-                        edges: this.edges
-                    });
-                    // console.log('✅ setFlow called successfully');
-                } else if (retries < 10) {
-                    console.log('⏳ IntakeFlowReactInstance not ready, retry', retries + 1, '/10');
-                    setTimeout(() => updateCanvas(retries + 1), 100);
-                } else {
-                    console.error('❌ IntakeFlowReactInstance not available after 10 retries!');
-                }
-            };
-            
-            updateCanvas();
-            
-            // Open editor for new node
-            this.selectNode(newNode);
+            // Use the new addNodeAtPosition method
+            this.addNodeAtPosition(nodeType, newX + 125, newY + 50, isStart);
         },
         
         getNodeLabel: function(nodeType) {
